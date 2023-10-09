@@ -1,0 +1,34 @@
+mport csv
+import io
+import boto3
+
+# Initialize Boto3 client for S3
+s3_client = boto3.client('s3')
+
+# S3 bucket and file information
+bucket_name = 'your-bucket'
+input_file_key = 'path/to/your/input.csv'
+output_file_key = 'path/to/your/output.csv'
+
+# Read the CSV file from S3
+response = s3_client.get_object(Bucket=bucket_name, Key=input_file_key)
+csv_data = response['Body'].read().decode('utf-8')
+
+# Update the header with double quotes
+csv_buffer = io.StringIO(csv_data)
+csv_reader = csv.reader(csv_buffer)
+header = next(csv_reader)  # Get the header
+
+# Add double quotes to each column name in the header
+modified_header = ['"{}"'.format(column) for column in header]
+
+# Write the modified CSV data back to a string buffer
+modified_csv_buffer = io.StringIO()
+csv_writer = csv.writer(modified_csv_buffer)
+csv_writer.writerow(modified_header)  # Write the modified header
+csv_writer.writerows(csv_reader)  # Write the rest of the rows
+
+# Upload the modified CSV file back to S3
+s3_client.put_object(Bucket=bucket_name, Key=output_file_key, Body=modified_csv_buffer.getvalue())
+
+print(f"Modified CSV file has been uploaded to s3://{bucket_name}/{output_file_key}")
